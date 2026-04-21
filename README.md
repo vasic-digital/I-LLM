@@ -1,34 +1,57 @@
 # I-LLM
 
-> **SCAFFOLD / WORK IN PROGRESS -- NOT YET FUNCTIONAL**
->
-> This module publishes a compiling Go scaffold with `ErrCodeUnimplemented`
-> returned from every method body. Phase-A implementation (~4 days core
-> surface per module) is a future milestone.
-
-## Purpose
-
-Introspection layer for LLM providers. Once Phase-A is authorised and implemented the module will
-provide the above capability as a consumable Go library for the
-HelixAgent ensemble and its siblings.
+Interactive LLM conversation patterns and structured-reasoning
+frameworks: chain-of-thought, tree-of-thought, ReAct, few-shot, and a
+step-by-step prompt chain runner. Part of the Plinius Go service family
+used by HelixAgent.
 
 ## Status
 
-- Compiles: `go build ./...` exits 0 when sibling scaffold repos are
-  checked out alongside (see Development layout below).
-- Method bodies: all return `ErrCodeUnimplemented`.
-- Integration: no runtime integration with consumers.
-- Future: see the Phase-A plan in the consuming HelixAgent repo at
-  `docs/superpowers/specs/2026-04-21-elder-plinius-phaseA-go-i-llm.md`.
+- Compiles: `go build ./...` exits 0.
+- Tests pass under `-race`: 2 packages (types, client), all green.
+- Default library seeded on `New()`: 3 patterns (cot-basic, react-basic,
+  few-shot) and 1 chain (summarise-then-translate).
+- Integration-ready: consumable Go library for the HelixAgent ensemble.
 
-## Lineage
+## Purpose
 
-Extracted from internal HelixAgent research tree on 2026-04-21. The
-earlier Python upstream name was obfuscated (leetspeak); this Go port
-uses a clean readable name.
+- `pkg/types` — value types: `ConversationPattern`, `ReActStep`,
+  `AgentConfig`, `Tool`, `ChainResult`, `PromptChain`, `ChainStep`,
+  `Agent`, `TreeResult`.
+- `pkg/client` — pattern / chain orchestration:
+  - `GetPattern`, `ListPatterns`, `RenderPattern`
+  - `CreateAgent(AgentConfig)`
+  - `RunChain(chain, inputs)` — executes a multi-step chain with
+    variable propagation
+  - `ChainOfThought(problem, model)`
+  - `TreeOfThought(problem, model, breadth)` — parallel branching
+  - `GetCategories`
+  - `RegisterPattern`, `RegisterChain`, `RegisterTool`, `SetRunner`
 
-Original research corpus: `docs/research/go-elder-plinius-v3/go-elder-plinius/go-i-llm/`
-inside the HelixAgent repository.
+## Usage
+
+```go
+import (
+    "context"
+    "log"
+
+    illm "digital.vasic.illm/pkg/client"
+    "digital.vasic.illm/pkg/types"
+)
+
+c, err := illm.New()
+if err != nil { log.Fatal(err) }
+defer c.Close()
+
+c.SetRunner(func(ctx context.Context, prompt string) (string, error) {
+    // call into an LLM provider of your choice
+    return "...", nil
+})
+
+r, err := c.ChainOfThought(context.Background(), "What is 17 * 23?", "gpt-4")
+if err != nil { log.Fatal(err) }
+log.Println(r.FinalOutput)
+```
 
 ## Module path
 
@@ -36,22 +59,20 @@ inside the HelixAgent repository.
 import "digital.vasic.illm"
 ```
 
+## Lineage
+
+Extracted from internal HelixAgent research tree on 2026-04-21.
+Graduated to functional status on the next day alongside its 7 sibling
+Plinius modules.
+
+Historical research corpus (unused) remains at
+`docs/research/go-elder-plinius-v3/go-elder-plinius/go-i-llm/` inside
+the HelixAgent repository.
+
 ## Development layout
 
-This scaffold's `go.mod` declares the module as `digital.vasic.illm` and
-(where applicable) uses relative `replace` directives such as
-`../PliniusCommon` to consume sibling scaffolds. To build locally,
-clone the sibling repos next to this one:
-
-```
-workspace/
-  PliniusCommon/
-  I-LLM/
-  ... other siblings ...
-```
-
-HelixAgent consumers pin these modules via their own `replace`
-directives pointing at the appropriate submodule path.
+This module's `go.mod` declares the module as `digital.vasic.illm` and
+uses a relative `replace` directive pointing at `../PliniusCommon`.
 
 ## License
 
