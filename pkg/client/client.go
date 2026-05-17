@@ -348,11 +348,28 @@ func renderTemplate(tpl string, vars map[string]string) string {
 	return out
 }
 
+// baselineRunner previously returned "RSP:" + prompt (truncated to 128
+// chars) — a deterministic stand-in installed as the default Runner on
+// New()/NewFromConfig(). Per round-23 §11.4 audit (2026-05-17), any caller
+// forgetting to call SetRunner before invoking ChainOfThought /
+// TreeOfThought / RunChain received fabricated "reasoning" output that
+// passed downstream success paths with no error surfaced — CRITICAL
+// PASS-bluff at the library-default layer: tests passed against the bluff
+// and consumers got meaningless "CoT/ToT/chain" results they trusted.
+//
+// Fix: baselineRunner now returns ErrBaselineRunnerNotConfigured. Callers
+// MUST inject a real LLM-dispatching Runner via SetRunner before invoking
+// any reasoning API. Tests that need a deterministic stand-in MUST
+// provide their own runner via SetRunner — the default is no longer a
+// silent prompt-echo stub.
 func baselineRunner(_ context.Context, prompt string) (string, error) {
-	// Deterministic stand-in: prefix "RSP:" + prompt (truncated).
-	limit := len(prompt)
-	if limit > 128 {
-		limit = 128
-	}
-	return "RSP:" + prompt[:limit], nil
+	_ = prompt
+	return "", ErrBaselineRunnerNotConfigured
 }
+
+// ErrBaselineRunnerNotConfigured is returned when I-LLM's ChainOfThought /
+// TreeOfThought / RunChain is invoked without a real LLM Runner injected
+// via SetRunner. The previous baselineRunner default returned "RSP:" +
+// prompt (truncated) and signalled success, producing fabricated reasoning
+// output — §11.4 PASS-bluff at the library-default layer.
+var ErrBaselineRunnerNotConfigured = fmt.Errorf("i-llm: baseline Runner has not been replaced — call client.SetRunner(...) with a real LLM-dispatching runner before invoking ChainOfThought/TreeOfThought/RunChain (the previous baseline default produced fabricated reasoning; §11.4 PASS-bluff removed)")

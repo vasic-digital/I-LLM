@@ -31,6 +31,7 @@ func BenchmarkChainOfThought(b *testing.B) {
 		b.Fatal(err)
 	}
 	defer c.Close()
+	c.SetRunner(rspTestRunner)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		if _, err := c.ChainOfThought(ctx, "problem", "model"); err != nil {

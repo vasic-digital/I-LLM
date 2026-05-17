@@ -63,8 +63,7 @@ func TestChainOfThoughtRunnerError(t *testing.T) {
 
 // TestTreeOfThoughtZeroBreadth — 0 breadth coerces to 3 per impl.
 func TestTreeOfThoughtZeroBreadth(t *testing.T) {
-	c, err := New()
-	require.NoError(t, err)
+	c := newTestClient(t)
 	defer c.Close()
 	tr, err := c.TreeOfThought(context.Background(), "p", "m", 0)
 	require.NoError(t, err)

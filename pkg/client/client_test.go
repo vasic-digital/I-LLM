@@ -2,12 +2,36 @@ package client
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"digital.vasic.illm/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// rspTestRunner is a deterministic unit-test stand-in for a real LLM Runner.
+// CONST-050(A) permits mocks/stubs in unit tests only — production code MUST
+// receive a real LLM-dispatching Runner via SetRunner, otherwise New()'s
+// default returns ErrBaselineRunnerNotConfigured (round-23 §11.4 audit fix).
+// Returns "RSP:" + prompt (truncated to 128 chars) so tests have a signal.
+func rspTestRunner(_ context.Context, prompt string) (string, error) {
+	limit := len(prompt)
+	if limit > 128 {
+		limit = 128
+	}
+	return "RSP:" + prompt[:limit], nil
+}
+
+// newTestClient builds a client with the RSP stub installed so unit tests
+// have deterministic behaviour without depending on a real LLM provider.
+func newTestClient(t *testing.T) *Client {
+	t.Helper()
+	c, err := New()
+	require.NoError(t, err)
+	c.SetRunner(rspTestRunner)
+	return c
+}
 
 func TestNew(t *testing.T) {
 	client, err := New()
@@ -90,8 +114,7 @@ func TestCreateAgent(t *testing.T) {
 }
 
 func TestChainOfThought(t *testing.T) {
-	c, err := New()
-	require.NoError(t, err)
+	c := newTestClient(t)
 	defer c.Close()
 
 	r, err := c.ChainOfThought(context.Background(), "17 * 23", "gpt-4")
@@ -101,15 +124,40 @@ func TestChainOfThought(t *testing.T) {
 	assert.Len(t, r.Steps, 1)
 }
 
-func TestTreeOfThought(t *testing.T) {
+// TestChainOfThoughtWithoutInjectedRunner_ReturnsSentinel asserts the
+// round-23 §11.4 audit fix: New()'s default Runner returns
+// ErrBaselineRunnerNotConfigured when SetRunner is not called, instead
+// of the previous silent "RSP:" stub that produced fabricated reasoning.
+func TestChainOfThoughtWithoutInjectedRunner_ReturnsSentinel(t *testing.T) {
 	c, err := New()
 	require.NoError(t, err)
+	defer c.Close()
+
+	_, err = c.ChainOfThought(context.Background(), "17 * 23", "gpt-4")
+	require.Error(t, err, "ChainOfThought without injected Runner MUST surface the sentinel error, not return fabricated data")
+	require.True(t, errors.Is(err, ErrBaselineRunnerNotConfigured), "wrapped error MUST be ErrBaselineRunnerNotConfigured; got %v", err)
+}
+
+func TestTreeOfThought(t *testing.T) {
+	c := newTestClient(t)
 	defer c.Close()
 
 	tr, err := c.TreeOfThought(context.Background(), "design a cache", "gpt-4", 4)
 	require.NoError(t, err)
 	assert.Equal(t, 4, tr.Breadth)
 	assert.Len(t, tr.Branches, 4)
+}
+
+// TestTreeOfThoughtWithoutInjectedRunner_ReturnsSentinel — sentinel
+// propagates through the ToT path (which calls ChainOfThought internally).
+func TestTreeOfThoughtWithoutInjectedRunner_ReturnsSentinel(t *testing.T) {
+	c, err := New()
+	require.NoError(t, err)
+	defer c.Close()
+
+	_, err = c.TreeOfThought(context.Background(), "design a cache", "gpt-4", 3)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBaselineRunnerNotConfigured))
 }
 
 func TestRunChain(t *testing.T) {
@@ -136,6 +184,23 @@ func TestRunChain(t *testing.T) {
 	assert.Equal(t, 2, r.Iterations)
 	assert.True(t, r.Success)
 	assert.Contains(t, r.FinalOutput, "use OUT[hi]")
+}
+
+// TestRunChainWithoutInjectedRunner_ReturnsSentinel — sentinel propagates
+// through the RunChain path (the first step's prompt is dispatched without
+// SetRunner, surfacing ErrBaselineRunnerNotConfigured wrapped as Unavailable).
+func TestRunChainWithoutInjectedRunner_ReturnsSentinel(t *testing.T) {
+	c, err := New()
+	require.NoError(t, err)
+	defer c.Close()
+
+	chain := types.PromptChain{
+		ID: "no-runner-chain", Name: "no-runner-chain", Description: "d",
+		Steps: []types.ChainStep{{Name: "s1", PromptTemplate: "hi", OutputKey: "o"}},
+	}
+	_, err = c.RunChain(context.Background(), chain, nil)
+	require.Error(t, err)
+	require.True(t, errors.Is(err, ErrBaselineRunnerNotConfigured))
 }
 
 func TestGetCategories(t *testing.T) {
