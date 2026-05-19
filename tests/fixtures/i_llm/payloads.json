@@ -1,0 +1,45 @@
+{
+  "_comment": "Round-265 bilingual fixture for digital.vasic.illm. Five locales — en, sr (Cyrillic), ja (Japanese), ar (Arabic, RTL), zh-CN (Han). Each entry carries a CoT problem statement + a few-shot examples block + a ToT design prompt in the target locale plus an ASCII pattern_id so the pattern/chain dispatch path is locale-agnostic. The runner uses these inputs to drive ChainOfThought + TreeOfThought + RenderPattern + RunChain end-to-end against a captured Runner that round-trips the rune payload back to the runner without any hardcoded translation table.",
+  "inputs": [
+    {
+      "locale": "en",
+      "cot_problem": "Decompose 17 multiplied by 23 into smaller steps.",
+      "few_shot_examples": "1 -> 2\n2 -> 4\n3 -> 6",
+      "few_shot_task": "What is the next number after 4?",
+      "tot_problem": "Design a cache eviction strategy for a write-heavy workload.",
+      "expected_min_runes": 30
+    },
+    {
+      "locale": "sr",
+      "cot_problem": "Разложи множење седамнаест са двадесет три на мање кораке.",
+      "few_shot_examples": "1 -> 2\n2 -> 4\n3 -> 6",
+      "few_shot_task": "Који је следећи број после четири?",
+      "tot_problem": "Дизајнирај стратегију избацивања из кеша за оптерећење са много уписа.",
+      "expected_min_runes": 30
+    },
+    {
+      "locale": "ja",
+      "cot_problem": "十七と二十三の掛け算を小さな手順に分解してください。",
+      "few_shot_examples": "1 -> 2\n2 -> 4\n3 -> 6",
+      "few_shot_task": "四の次の数字は何ですか？",
+      "tot_problem": "書き込み負荷の高いワークロードのためのキャッシュ削除戦略を設計してください。",
+      "expected_min_runes": 15
+    },
+    {
+      "locale": "ar",
+      "cot_problem": "قسّم عملية ضرب سبعة عشر في ثلاثة وعشرين إلى خطوات أصغر.",
+      "few_shot_examples": "1 -> 2\n2 -> 4\n3 -> 6",
+      "few_shot_task": "ما هو الرقم التالي بعد أربعة؟",
+      "tot_problem": "صمم استراتيجية إخراج ذاكرة التخزين المؤقت لعبء عمل كثيف الكتابة.",
+      "expected_min_runes": 30
+    },
+    {
+      "locale": "zh-CN",
+      "cot_problem": "将十七乘以二十三分解为更小的步骤。",
+      "few_shot_examples": "1 -> 2\n2 -> 4\n3 -> 6",
+      "few_shot_task": "四之后的下一个数字是什么？",
+      "tot_problem": "为写入密集型工作负载设计缓存驱逐策略。",
+      "expected_min_runes": 15
+    }
+  ]
+}
