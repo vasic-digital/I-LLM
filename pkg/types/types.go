@@ -21,13 +21,13 @@ type ConversationPattern struct {
 // Validate checks that the ConversationPattern is valid.
 func (o *ConversationPattern) Validate() error {
 	if strings.TrimSpace(o.Description) == "" {
-		return fmt.Errorf("description is required")
+		return fmt.Errorf("%s", Tr("types.validation.description_required", nil))
 	}
 	if strings.TrimSpace(o.ID) == "" {
-		return fmt.Errorf("id is required")
+		return fmt.Errorf("%s", Tr("types.validation.id_required", nil))
 	}
 	if strings.TrimSpace(o.Name) == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("%s", Tr("types.validation.name_required", nil))
 	}
 	return nil
 }
@@ -54,10 +54,10 @@ type AgentConfig struct {
 // Validate checks that the AgentConfig is valid.
 func (o *AgentConfig) Validate() error {
 	if strings.TrimSpace(o.Model) == "" {
-		return fmt.Errorf("model is required")
+		return fmt.Errorf("%s", Tr("types.validation.model_required", nil))
 	}
 	if strings.TrimSpace(o.Name) == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("%s", Tr("types.validation.name_required", nil))
 	}
 	return nil
 }
@@ -79,10 +79,10 @@ type Tool struct {
 // Validate checks that the Tool is valid.
 func (o *Tool) Validate() error {
 	if strings.TrimSpace(o.Description) == "" {
-		return fmt.Errorf("description is required")
+		return fmt.Errorf("%s", Tr("types.validation.description_required", nil))
 	}
 	if strings.TrimSpace(o.Name) == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("%s", Tr("types.validation.name_required", nil))
 	}
 	return nil
 }
@@ -108,13 +108,13 @@ type PromptChain struct {
 // Validate checks that the PromptChain is valid.
 func (o *PromptChain) Validate() error {
 	if strings.TrimSpace(o.Description) == "" {
-		return fmt.Errorf("description is required")
+		return fmt.Errorf("%s", Tr("types.validation.description_required", nil))
 	}
 	if strings.TrimSpace(o.ID) == "" {
-		return fmt.Errorf("id is required")
+		return fmt.Errorf("%s", Tr("types.validation.id_required", nil))
 	}
 	if strings.TrimSpace(o.Name) == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("%s", Tr("types.validation.name_required", nil))
 	}
 	return nil
 }
@@ -145,7 +145,7 @@ type ChainStep struct {
 // Validate checks that the ChainStep is valid.
 func (o *ChainStep) Validate() error {
 	if strings.TrimSpace(o.Name) == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("%s", Tr("types.validation.name_required", nil))
 	}
 	return nil
 }

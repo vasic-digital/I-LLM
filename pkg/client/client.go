@@ -52,7 +52,7 @@ func New(opts ...config.Option) (*Client, error) {
 	cfg := config.New("i-llm", opts...)
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid configuration", err)
+			Tr("client.err.invalid_configuration", nil), err)
 	}
 	c := &Client{
 		cfg:      cfg,
@@ -69,7 +69,7 @@ func New(opts ...config.Option) (*Client, error) {
 func NewFromConfig(cfg *config.Config) (*Client, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid configuration", err)
+			Tr("client.err.invalid_configuration", nil), err)
 	}
 	c := &Client{
 		cfg:      cfg,
@@ -110,7 +110,7 @@ func (c *Client) SetRunner(r Runner) {
 func (c *Client) RegisterPattern(p ConversationPattern) error {
 	if err := p.Validate(); err != nil {
 		return errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid pattern", err)
+			Tr("client.err.invalid_pattern", nil), err)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -122,7 +122,7 @@ func (c *Client) RegisterPattern(p ConversationPattern) error {
 func (c *Client) RegisterChain(p PromptChain) error {
 	if err := p.Validate(); err != nil {
 		return errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid chain", err)
+			Tr("client.err.invalid_chain", nil), err)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -148,7 +148,7 @@ func (c *Client) GetPattern(ctx context.Context, id string) (*ConversationPatter
 		out := p
 		return &out, nil
 	}
-	return nil, errors.New(errors.ErrCodeNotFound, "i-llm", "pattern not found")
+	return nil, errors.New(errors.ErrCodeNotFound, "i-llm", Tr("client.err.pattern_not_found", nil))
 }
 
 // ListPatterns returns all patterns (optionally filtered by category).
@@ -174,7 +174,7 @@ func (c *Client) RenderPattern(_ context.Context, pattern ConversationPattern, v
 func (c *Client) CreateAgent(_ context.Context, cfg AgentConfig) (*Agent, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid agent config", err)
+			Tr("client.err.invalid_agent_config", nil), err)
 	}
 	cfg.Defaults()
 	return &Agent{Config: cfg, ID: fmt.Sprintf("agent-%s", strings.ToLower(cfg.Name))}, nil
@@ -186,7 +186,7 @@ func (c *Client) CreateAgent(_ context.Context, cfg AgentConfig) (*Agent, error)
 func (c *Client) RunChain(ctx context.Context, chain PromptChain, inputs map[string]string) (*ChainResult, error) {
 	if err := chain.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrCodeInvalidArgument, "i-llm",
-			"invalid chain", err)
+			Tr("client.err.invalid_chain", nil), err)
 	}
 	c.mu.RLock()
 	runner := c.runner
@@ -204,7 +204,7 @@ func (c *Client) RunChain(ctx context.Context, chain PromptChain, inputs map[str
 		if err != nil {
 			res.Success = false
 			return res, errors.Wrap(errors.ErrCodeUnavailable, "i-llm",
-				"runner failed", err)
+				Tr("client.err.runner_failed", nil), err)
 		}
 		key := step.OutputKey
 		if key == "" {
@@ -221,7 +221,7 @@ func (c *Client) RunChain(ctx context.Context, chain PromptChain, inputs map[str
 // ChainOfThought prompts the runner with a CoT scaffold.
 func (c *Client) ChainOfThought(ctx context.Context, problem string, model string) (*ChainResult, error) {
 	if problem == "" {
-		return nil, errors.New(errors.ErrCodeInvalidArgument, "i-llm", "problem is required")
+		return nil, errors.New(errors.ErrCodeInvalidArgument, "i-llm", Tr("client.err.problem_required", nil))
 	}
 	c.mu.RLock()
 	runner := c.runner
@@ -230,7 +230,7 @@ func (c *Client) ChainOfThought(ctx context.Context, problem string, model strin
 	out, err := runner(ctx, prompt)
 	if err != nil {
 		return nil, errors.Wrap(errors.ErrCodeUnavailable, "i-llm",
-			"runner failed", err)
+			Tr("client.err.runner_failed", nil), err)
 	}
 	return &ChainResult{
 		FinalOutput: out,
@@ -239,7 +239,7 @@ func (c *Client) ChainOfThought(ctx context.Context, problem string, model strin
 		Success:     true,
 		Steps: []ReActStep{{
 			StepNum:     1,
-			Thought:     "Chain-of-thought decomposition",
+			Thought:     Tr("client.step.cot_thought", nil),
 			Action:      "reason",
 			ActionInput: problem,
 			Observation: out,
@@ -250,7 +250,7 @@ func (c *Client) ChainOfThought(ctx context.Context, problem string, model strin
 // TreeOfThought explores `breadth` parallel reasoning branches and aggregates them.
 func (c *Client) TreeOfThought(ctx context.Context, problem string, model string, breadth int) (*TreeResult, error) {
 	if problem == "" {
-		return nil, errors.New(errors.ErrCodeInvalidArgument, "i-llm", "problem is required")
+		return nil, errors.New(errors.ErrCodeInvalidArgument, "i-llm", Tr("client.err.problem_required", nil))
 	}
 	if breadth <= 0 {
 		breadth = 3
@@ -300,22 +300,28 @@ func (c *Client) GetCategories(_ context.Context) ([]string, error) {
 func (c *Client) seedDefaults() {
 	patterns := []ConversationPattern{
 		{
-			ID: "cot-basic", Name: "Chain-of-Thought", Category: "reasoning",
-			Description: "Basic step-by-step reasoning scaffold.",
+			ID:          "cot-basic",
+			Name:        Tr("client.pattern.cot.name", nil),
+			Category:    "reasoning",
+			Description: Tr("client.pattern.cot.desc", nil),
 			Template:    "Problem: {{problem}}\n\nLet's think step by step.",
 			Variables:   []string{"problem"},
 			Example:     "Problem: 17 * 23\n\nLet's think step by step.",
 		},
 		{
-			ID: "react-basic", Name: "ReAct", Category: "agent",
-			Description: "ReAct agent scaffold with Thought/Action/Observation.",
+			ID:          "react-basic",
+			Name:        Tr("client.pattern.react.name", nil),
+			Category:    "agent",
+			Description: Tr("client.pattern.react.desc", nil),
 			Template: "Question: {{question}}\n\nThought:\nAction:\nAction Input:\n" +
 				"Observation:\n...\nFinal Answer:",
 			Variables: []string{"question"},
 		},
 		{
-			ID: "few-shot", Name: "Few-Shot", Category: "prompt",
-			Description: "Few-shot example scaffold.",
+			ID:          "few-shot",
+			Name:        Tr("client.pattern.fewshot.name", nil),
+			Category:    "prompt",
+			Description: Tr("client.pattern.fewshot.desc", nil),
 			Template:    "Examples:\n{{examples}}\n\nTask: {{task}}",
 			Variables:   []string{"examples", "task"},
 		},
@@ -326,9 +332,10 @@ func (c *Client) seedDefaults() {
 
 	chains := []PromptChain{
 		{
-			ID: "summarise-then-translate", Name: "Summarise then Translate",
+			ID:          "summarise-then-translate",
+			Name:        Tr("client.chain.summtrans.name", nil),
 			Category:    "demo",
-			Description: "Two-step chain: summarise input, then translate the summary.",
+			Description: Tr("client.chain.summtrans.desc", nil),
 			Steps: []ChainStep{
 				{Name: "summarise", PromptTemplate: "Summarise briefly: {{text}}", OutputKey: "summary"},
 				{Name: "translate", PromptTemplate: "Translate to {{lang}}: {{summary}}", OutputKey: "translated"},
